@@ -209,3 +209,4 @@ class Jisho:
 
     def export_to_json(self):
         pass
+
