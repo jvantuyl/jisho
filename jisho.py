@@ -1,6 +1,7 @@
+import asyncio
 import requests
 from itertools import zip_longest
-
+from functools import partial
 from bs4 import BeautifulSoup
 
 import kana
@@ -13,6 +14,7 @@ class Jisho:
     def __init__(self):
         self.html = None
         self.response = None
+        self.loop = None
 
     def kana_to_halpern(self, untrans):
         """Take a word completely in hiragana or katakana and translate it into romaji"""
@@ -53,7 +55,7 @@ class Jisho:
                 return True
         return False
 
-    def _get_search_response(self, word="", filters=["words"]):
+    async def _get_search_response(self, word="", filters=["words"]):
         """Takes a word, stores it within the Jisho object, and returns parsed HTML"""
         base_url = r"https://jisho.org/search/"
 
@@ -62,7 +64,8 @@ class Jisho:
         for filter in filters:
             base_url += r"%20%23" + filter
 
-        self.response = requests.get(base_url + word, timeout=5)
+        self.response = await self.loop.run_in_executor(None, partial(requests.get, base_url + word, timeout=5))
+
         return self.response
 
     def _extract_html(self):
@@ -70,12 +73,13 @@ class Jisho:
         self.html = BeautifulSoup(self.response.content, "html.parser")
         return self.html
 
-    def search(self, word, filters=["words"], depth="shallow"):
+    async def search(self, word, filters=["words"], depth="shallow"):
         """Take a word and spit out well-formatted dictionaries for each entry.
 
         """
-        
-        self._get_search_response(word, filters)
+
+        self.loop = asyncio.get_event_loop()
+        await self._get_search_response(word, filters)
         self._extract_html()
 
         results = self.html.find_all(class_="concept_light clearfix")
@@ -95,7 +99,7 @@ class Jisho:
 
             while more:
                 link = more.get("href")
-                response = requests.get(r"http:" + link, timeout=5)
+                response = await self.loop.run_in_executor(None, partial(requests.get, r"http:" + link, timeout=5))
                 html = BeautifulSoup(response.content, "html.parser")
                 results = html.find_all(class_="concept_light clearfix")
 
