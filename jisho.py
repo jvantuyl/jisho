@@ -13,7 +13,7 @@ class Jisho:
     def __init__(self):
         self.html = None
         self.response = None
-        
+
     def kana_to_halpern(self, untrans):
         """Take a word completely in hiragana or katakana and translate it into romaji"""
         halpern = []
@@ -56,7 +56,7 @@ class Jisho:
     def _get_search_response(self, word="", filters=["words"]):
         """Takes a word, stores it within the Jisho object, and returns parsed HTML"""
         base_url = r"https://jisho.org/search/"
-        
+
         # Take all the filters and append them to the base_url
         base_url += word
         for filter in filters:
@@ -69,26 +69,26 @@ class Jisho:
         """With the response, extract the HTML and store it into the object."""
         self.html = BeautifulSoup(self.response.content, "html.parser")
         return self.html
-    
+
     def search(self, word, filters=["words"], depth="shallow"):
         """Take a word and spit out well-formatted dictionaries for each entry.
-        
+
         """
         
         self._get_search_response(word, filters)
         self._extract_html()
 
         results = self.html.find_all(class_="concept_light clearfix")
-        fmtd_results = []  
+        fmtd_results = []
 
         if depth == "shallow":
             for r in results:
                 fmtd_results.append(self._extract_dictionary_information(r))
 
         elif depth == "deep":
-            
+
             for r in results:
-                fmtd_results.append(self._extract_dictionary_information(r)) 
+                fmtd_results.append(self._extract_dictionary_information(r))
 
             # If there are more than 20 results on the page, there is no "More Words" link
             more = self.html.find(class_="more")
@@ -101,7 +101,7 @@ class Jisho:
 
                 for r in results:
                     fmtd_results.append(self._extract_dictionary_information(r))
-                
+
                 more = html.find(class_="more")
 
         return fmtd_results
@@ -132,7 +132,7 @@ class Jisho:
             notes_index = [m.text == "Notes" for m in meanings_list].index(True)
         except ValueError:
             notes_index = False
-        
+
         if wiki_index:
             return wiki_index
         elif other_forms_index:
@@ -149,7 +149,7 @@ class Jisho:
 
         # Cleans the vocabulary word for the result
         vocabulary = self._get_full_vocabulary_string(entry)
-        
+
         # Grab the difficulty tags for the result
         diff_tags = [m.text for m in entry.find_all(class_="concept_light-tag label")]
 
@@ -183,7 +183,7 @@ class Jisho:
         # inset_furigana needs more formatting due to potential bits of kanji sticking together
         inset_furigana_list = []
         for f in inset_furigana:
-            cleaned_text = f.string.replace("\n", "").replace(" ", "") 
+            cleaned_text = f.string.replace("\n", "").replace(" ", "")
             if cleaned_text == "":
                 continue
             elif len(cleaned_text) > 1:
@@ -193,7 +193,7 @@ class Jisho:
                 inset_furigana_list.append(cleaned_text)
 
         children = zip_longest(upper_furigana, inset_furigana_list)
- 
+
         full_word = []
         for c in children:
             if c[0].text != '':
@@ -202,11 +202,10 @@ class Jisho:
                 full_word.append(c[1])
             else:
                 continue
-                
+
         print(''.join(full_word))
         print("====")
         return ''.join(full_word)
 
     def export_to_json(self):
         pass
-
